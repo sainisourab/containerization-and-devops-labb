@@ -160,9 +160,3 @@ curl http://<BACKEND_STATIC_IP>:8000/records?limit=10
 4. Call `GET /records`
 5. Previously inserted records remain because of named volume `image_analyzer_postgres_data`
 
-## Proof Commands (for screenshots)
-
-Use commands from `NETWORK_COMMANDS.md` and `REPORT.md` to capture:
-- `docker network inspect`
-- container IPs
-- named volume persistence test
