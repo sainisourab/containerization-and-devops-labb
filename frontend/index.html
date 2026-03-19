@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini Image Analyzer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input, textarea, button {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 10px;
+      font-size: 14px;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .hint {
+      color: #8b949e;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 140px;
+      margin: 0;
+    }
+    .row {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 2fr 1fr;
+    }
+    @media (max-width: 900px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gemini Image Analyzer</h1>
+
+    <div class="card">
+      <h2>Analyze Image</h2>
+      <label for="imageUrl">Image URL (optional if file selected)</label>
+      <input id="imageUrl" type="url" placeholder="https://example.com/image.jpg" />
+
+      <label for="imageFile">Upload Image File (optional)</label>
+      <input id="imageFile" type="file" accept="image/*" />
+
+      <label for="referenceText">Reference Text</label>
+      <textarea id="referenceText" placeholder="What should Gemini compare this image against?"></textarea>
+
+      <div class="actions">
+        <button id="analyzeBtn">Analyze and Save</button>
+        <button id="healthBtn" type="button">Check Health</button>
+        <button id="recordsBtn" type="button">Load Records</button>
+      </div>
+      <p class="hint">
+        Frontend calls <code>/api/*</code> and Nginx proxies to backend service.
+      </p>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <h2>Latest API Response</h2>
+        <pre id="apiOutput">No request yet.</pre>
+      </div>
+      <div class="card">
+        <h2>Recent Records</h2>
+        <pre id="recordsOutput">No records loaded.</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiOutput = document.getElementById("apiOutput");
+    const recordsOutput = document.getElementById("recordsOutput");
+
+    function pretty(data) {
+      return JSON.stringify(data, null, 2);
+    }
+
+    async function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function apiRequest(path, options = {}) {
+      const response = await fetch(`/api/${path}`, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options
+      });
+      const text = await response.text();
+      let payload = text;
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_) {
+        // Keep non-JSON payload as raw text.
+      }
+      if (!response.ok) {
+        throw new Error(typeof payload === "string" ? payload : pretty(payload));
+      }
+      return payload;
+    }
+
+    document.getElementById("healthBtn").addEventListener("click", async () => {
+      apiOutput.textContent = "Checking health...";
+      try {
+        const data = await apiRequest("health");
+        apiOutput.textContent = pretty(data);
+      } catch (error) {
+        apiOutput.textContent = `Health request failed:\n${error.message}`;
+      }
+    });
+
+    document.getElementById("recordsBtn").addEventListener("click", async () => {
+      recordsOutput.textContent = "Loading records...";
+      try {
+        const data = await apiRequest("records?limit=20");
+        recordsOutput.textContent = pretty(data);
+      } catch (error) {
+        recordsOutput.textContent = `Fetch failed:\n${error.message}`;
+      }
+    });
+
+    document.getElementById("analyzeBtn").addEventListener("click", async () => {
+      apiOutput.textContent = "Analyzing image with Gemini...";
+      const imageUrl = document.getElementById("imageUrl").value.trim();
+      const imageFile = document.getElementById("imageFile").files[0];
+      const referenceText = document.getElementById("referenceText").value.trim();
+
+      if (!imageUrl && !imageFile) {
+        apiOutput.textContent = "Provide an image URL or upload an image file.";
+        return;
+      }
+
+      const body = { reference_text: referenceText || null };
+      if (imageFile) {
+        body.image_base64 = await fileToDataUrl(imageFile);
+      } else {
+        body.image_url = imageUrl;
+      }
+
+      try {
+        const data = await apiRequest("records", {
+          method: "POST",
+          body: JSON.stringify(body)
+        });
+        apiOutput.textContent = pretty(data);
+      } catch (error) {
+        apiOutput.textContent = `Analyze request failed:\n${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
