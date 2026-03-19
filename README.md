@@ -1,1 +1,0 @@
-# containerization-and-devops-lab-
