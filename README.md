@@ -15,8 +15,8 @@ Containerized AI image analyzer built for **Project Assignment 1** requirements:
 - External `macvlan`/`ipvlan` networking with static container IPs
 - Healthchecks + restart policies
 
-Repository path:
-`Project Assignment 1`
+GitHub repository:
+[Project Assignment 1](https://github.com/sainisourab/containerization-and-devops-labb/tree/main/Project%20Assignment%201)
 
 ---
 
@@ -213,4 +213,3 @@ Detailed checklist: `docs/PROOF_STEPS.md`
 
 ---
 
-=
