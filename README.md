@@ -1,73 +1,58 @@
-<div align="center">
-
 # Gemini Image Analyzer
 
-Production-style containerized web app for AI image analysis with Gemini, PostgreSQL, Docker Compose, and LAN networking.
+Production-style containerized image analysis application using FastAPI, Gemini API, PostgreSQL, Docker Compose, and LAN networking (`macvlan` or `ipvlan`).
 
-<p>
-  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi" alt="FastAPI">
-  <img src="https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker" alt="Docker">
-  <img src="https://img.shields.io/badge/Networking-macvlan%20%7C%20ipvlan-blue" alt="Networking">
-  <img src="https://img.shields.io/badge/AI-Gemini-8E44AD" alt="Gemini">
-</p>
+## Table of Contents
 
-<p>
-  <a href="#quick-start">Quick Start</a> |
-  <a href="#run-and-access">Run and Access</a> |
-  <a href="#api-reference">API Reference</a> |
-  <a href="#proof-checklist">Proof Checklist</a>
-</p>
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Configuration](#configuration)
+- [Networking: macvlan vs ipvlan](#networking-macvlan-vs-ipvlan)
+- [Quick Start](#quick-start)
+- [Access Modes](#access-modes)
+- [API Reference](#api-reference)
+- [Proof and Validation Checklist](#proof-and-validation-checklist)
+- [Troubleshooting](#troubleshooting)
+- [Security Notes](#security-notes)
 
-</div>
+## Overview
 
----
+This project demonstrates:
 
-## Repository
+- A backend API that analyzes images using Gemini and stores results.
+- A PostgreSQL database with persistent storage via named Docker volume.
+- A frontend served by Nginx, with proxying to backend API endpoints.
+- A LAN-mode deployment using an external Docker network with static IPs.
+- A localhost testing path for same-machine testing reliability.
 
-Project path on GitHub:  
-[Project Assignment 1](https://github.com/sainisourab/containerization-and-devops-labb/tree/main/Project%20Assignment%201)
+Repository reference: [Project Assignment 1](https://github.com/sainisourab/containerization-and-devops-labb/tree/main/Project%20Assignment%201)
 
----
-
-## Highlights
-
-| Capability | Implementation |
-|---|---|
-| API + AI | FastAPI backend calling Gemini for image understanding and reference comparison |
-| Database | PostgreSQL with table auto-creation and persistent named volume |
-| Containerization | Separate Dockerfiles for backend and database with optimized image setup |
-| Networking | External `macvlan` or `ipvlan` network with static container IP assignment |
-| Reliability | Healthchecks, restart policy, startup dependency ordering in Compose |
-| Local Testing | `frontend_local` service exposed on localhost to avoid macvlan host-isolation issues |
-
----
-
-## Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
     C[Client Browser / Postman] --> F[Frontend Nginx]
     F -->|/api/* proxy| B[Backend FastAPI + Gemini]
     B --> D[(PostgreSQL)]
-    D --> V[(Named Volume)]
+    D --> V[(Named Docker Volume)]
 ```
 
-Network model:
-- `frontend`, `backend`, and `database` are attached to the external LAN network (`macvlan` or `ipvlan`) with static IPs.
-- `frontend_local` runs on bridge and maps to localhost for same-laptop access.
+Deployment network model:
 
----
+- `frontend`, `backend`, and `database` join external `lan_net` using static IPs.
+- `frontend_local` stays on bridge network and publishes a host port (`8088` by default).
+- `backend` is dual-homed (`app_net` + `lan_net`) so LAN and local frontend paths both work.
 
 ## Tech Stack
 
-- Frontend: HTML + JavaScript + Nginx reverse proxy
-- Backend: FastAPI + asyncpg + Gemini API client
-- Database: PostgreSQL (custom Dockerfile)
-- Orchestration: Docker Compose
-- Networking: external macvlan or ipvlan
-
----
+- Frontend: HTML + JavaScript + Nginx
+- Backend: FastAPI + asyncpg + Gemini API
+- Database: PostgreSQL (custom Docker image)
+- Container Orchestration: Docker Compose
+- Networking: external `macvlan` or `ipvlan`
 
 ## Project Structure
 
@@ -80,15 +65,12 @@ Network model:
 │   │   ├── gemini_service.py
 │   │   ├── main.py
 │   │   └── schemas.py
-│   ├── .dockerignore
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── database/
 │   ├── init/01-bootstrap.sql
-│   ├── .dockerignore
 │   └── Dockerfile
 ├── frontend/
-│   ├── .dockerignore
 │   ├── Dockerfile
 │   ├── index.html
 │   └── nginx.conf
@@ -100,76 +82,124 @@ Network model:
 └── REPORT.md
 ```
 
----
+## Prerequisites
 
-## Quick Start
+Before running the stack, ensure:
 
-### 1) Configure environment
+- Docker Desktop / Docker Engine is installed and running.
+- Docker Compose v2 is available (`docker compose version`).
+- A valid Gemini API key is available.
+- Your LAN subnet and gateway are known (for static IP planning).
+
+## Configuration
+
+1. Create environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Update required keys:
-- `GEMINI_API_KEY`
-- `DOCKER_LAN_NETWORK`
-- `BACKEND_STATIC_IP`, `DB_STATIC_IP`, `FRONTEND_STATIC_IP`
+2. Update these keys in `.env`:
+
+- `DOCKER_LAN_NETWORK` (name of external network to create)
+- `BACKEND_STATIC_IP`, `DB_STATIC_IP`, `FRONTEND_STATIC_IP` (must be in subnet and unused)
 - `FRONTEND_HOST_PORT` (default `8088`)
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- `GEMINI_API_KEY`, `GEMINI_MODEL`
 
-### 2) Create external network (mandatory)
+3. Make sure selected IPs do not conflict with DHCP or existing LAN devices.
 
-Use commands in `NETWORK_COMMANDS.md` for:
-- macvlan (recommended for assignment demonstration)
-- ipvlan (alternative)
+## Networking: macvlan vs ipvlan
 
-### 3) Build and run
+### `macvlan` vs `ipvlan` (conceptual difference)
+
+| Parameter | macvlan | ipvlan |
+|---|---|---|
+| L2 identity | Each container gets its own MAC address | Containers reuse parent interface MAC (driver-level multiplexing) |
+| Broadcast domain behavior | Container appears like a separate physical LAN host | More interface-efficient with fewer exposed MAC identities |
+| Typical assignment demos | Very popular for "container as LAN host" demonstrations | Often chosen where MAC scaling or switch policies matter |
+| Host to container access | Common host-isolation caveat on same machine | Can be easier in some setups, but depends on mode/config |
+
+### Why `macvlan` is chosen in this project
+
+`macvlan` is selected as the primary recommendation for assignment demonstration because:
+
+- It clearly shows each container as a first-class LAN endpoint with static IP identity.
+- It maps well to the assignment requirement of demonstrating custom networking and LAN reachability.
+- It is straightforward to explain and verify using `docker network inspect` and container IP checks.
+
+`ipvlan` is still supported as an alternate mode and can be used where local environment constraints make it preferable.
+
+### macvlan host isolation workaround
+
+In many environments, the Docker host cannot directly access containers on the same `macvlan` network. This is expected behavior in common `macvlan` setups.
+
+This project provides a practical workaround:
+
+1. Keep LAN-facing services on `lan_net` (`macvlan`).
+2. Run `frontend_local` on bridge network.
+3. Expose `frontend_local` via host port (`http://localhost:8088` by default).
+
+This gives both:
+
+- LAN demonstration path via static IP (`http://<FRONTEND_STATIC_IP>`)
+- Reliable same-host testing path via localhost
+
+Optional advanced workaround (host-side `macvlan` shim):
+
+- Create a host `macvlan` interface attached to the same parent NIC.
+- Assign an IP in the same subnet.
+- Add routing rules to reach container IP range through that shim.
+
+Note: exact commands differ by OS and host networking model. For this assignment repository, the recommended and portable workaround remains `frontend_local` on localhost.
+
+## Quick Start
+
+### 1) Create external network (mandatory)
+
+Use one mode from `NETWORK_COMMANDS.md`:
+
+- Option A: `macvlan` (recommended)
+- Option B: `ipvlan` (alternative)
+
+### 2) Build and start all services
 
 ```bash
 docker compose up --build -d
 ```
 
-### 4) Verify containers
+### 3) Verify status and health
 
 ```bash
 docker compose ps
-docker compose logs frontend frontend_local --tail=50
 docker compose logs backend --tail=50
+docker compose logs frontend frontend_local --tail=50
 docker compose logs database --tail=50
 ```
 
----
+## Access Modes
 
-## Run and Access
-
-| Mode | URL | Notes |
+| Use Case | URL | Notes |
 |---|---|---|
-| LAN access | `http://<FRONTEND_STATIC_IP>` | Assignment network demonstration |
-| Same laptop | `http://localhost:<FRONTEND_HOST_PORT>` | Uses `frontend_local` |
-| Health endpoint | `http://<BACKEND_STATIC_IP>:8000/health` | Backend status + DB + Gemini configuration |
+| LAN access (assignment proof) | `http://<FRONTEND_STATIC_IP>` | Uses external LAN network |
+| Same host/laptop access | `http://localhost:<FRONTEND_HOST_PORT>` | Uses `frontend_local` |
+| Backend health check | `http://<BACKEND_STATIC_IP>:8000/health` | Validates API + DB + Gemini config |
 
-Default `FRONTEND_HOST_PORT` is `8088`.
-
-> With macvlan, host-to-container traffic can be blocked on the same machine.  
-> Use localhost access for reliable same-laptop testing.
-
----
+Default host port is `8088` unless changed in `.env`.
 
 ## API Reference
 
-<details>
-<summary><strong>GET /health</strong></summary>
+### `GET /health`
 
 ```bash
 curl http://<BACKEND_STATIC_IP>:8000/health
 ```
 
-</details>
+### `POST /records`
 
-<details>
-<summary><strong>POST /records</strong> - analyze image and store result</summary>
+Stores analyzed result into PostgreSQL.
 
-Image URL payload:
+Request with image URL:
 
 ```json
 {
@@ -178,7 +208,7 @@ Image URL payload:
 }
 ```
 
-Base64 payload:
+Request with base64:
 
 ```json
 {
@@ -195,22 +225,15 @@ curl -X POST http://<BACKEND_STATIC_IP>:8000/records \
   -d "{\"image_url\":\"https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05\",\"reference_text\":\"Nature scene\"}"
 ```
 
-</details>
-
-<details>
-<summary><strong>GET /records?limit=50</strong></summary>
+### `GET /records?limit=<n>`
 
 ```bash
-curl http://<BACKEND_STATIC_IP>:8000/records?limit=10
+curl "http://<BACKEND_STATIC_IP>:8000/records?limit=10"
 ```
 
-</details>
+## Proof and Validation Checklist
 
----
-
-## Proof Checklist
-
-Use these commands for assignment screenshots:
+Use these commands for screenshots/evidence:
 
 ```bash
 docker network inspect <network-name>
@@ -218,46 +241,32 @@ docker inspect -f "{{.Name}} -> {{range .NetworkSettings.Networks}}{{.IPAddress}
 docker compose ps
 ```
 
-Persistence test:
-1. Insert a record (`POST /records`)
+Persistence validation flow:
+
+1. Call `POST /records` to insert data.
 2. Stop stack: `docker compose down`
-3. Start stack: `docker compose up -d`
-4. Fetch records: `GET /records`
-5. Confirm old record still exists (named volume works)
+3. Restart stack: `docker compose up -d`
+4. Call `GET /records`
+5. Confirm older records still exist (named volume persistence).
 
-Detailed steps: `docs/PROOF_STEPS.md`
-
----
+Detailed checklist: `docs/PROOF_STEPS.md`
 
 ## Troubleshooting
 
 - `413 Request Entity Too Large`
-  - Adjusted via `client_max_body_size` in `frontend/nginx.conf`.
-- Cannot open LAN IP from same host
-  - Expected in macvlan setups. Use localhost URL.
+  - Configure `client_max_body_size` in `frontend/nginx.conf`.
+- Cannot open static frontend IP from same host
+  - Typical `macvlan` host-isolation; use `http://localhost:<FRONTEND_HOST_PORT>`.
 - Static IP assignment fails
-  - Ensure `.env` IPs are in the external subnet and not already in use.
-- Network overlap error
-  - Choose a non-overlapping subnet when creating Docker network.
+  - Ensure IPs are within subnet and currently unused.
+- External network missing
+  - Create external network first (`macvlan` or `ipvlan`) before `docker compose up`.
+- Network overlap errors
+  - Select a non-overlapping subnet with your existing Docker/host networks.
 
----
+## Security Notes
 
-## GitHub Pages Note
-
-GitHub Pages is ideal for project documentation and report publishing, but this app's backend and database require Docker runtime.
-
-Recommended Pages content:
-- This README
-- `REPORT.md`
-- `NETWORK_COMMANDS.md`
-- `docs/PROOF_STEPS.md`
-
----
-
-## Security
-
-- Never commit real API keys.
-- Rotate `GEMINI_API_KEY` if it was exposed.
-- Keep `.env` private and commit only `.env.example`.
-@sainisourab
-Comment
+- Never commit real API keys into git.
+- Keep `.env` private; commit only `.env.example`.
+- Rotate `GEMINI_API_KEY` if accidentally exposed.
+- Use strong `POSTGRES_PASSWORD` values in non-demo environments.

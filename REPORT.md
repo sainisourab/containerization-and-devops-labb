@@ -1,272 +1,220 @@
-# Gemini Image Analyzer
+# Assignment Report: Containerized AI Image Analyzer
 
-Production-style containerized image analysis application using FastAPI, Gemini API, PostgreSQL, Docker Compose, and LAN networking (`macvlan` or `ipvlan`).
+## 1. Project Overview
 
-## Table of Contents
+This project delivers a production-oriented containerized web application that analyzes images using the Gemini API and stores the analysis output in PostgreSQL.
 
-- [Overview](#overview)
-- [System Architecture](#system-architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Configuration](#configuration)
-- [Networking: macvlan vs ipvlan](#networking-macvlan-vs-ipvlan)
-- [Quick Start](#quick-start)
-- [Access Modes](#access-modes)
-- [API Reference](#api-reference)
-- [Proof and Validation Checklist](#proof-and-validation-checklist)
-- [Troubleshooting](#troubleshooting)
-- [Security Notes](#security-notes)
+### Core Goals Achieved
 
-## Overview
+- Frontend web UI integrated through an Nginx container
+- PostgreSQL used as the mandatory database
+- Backend API implemented with FastAPI
+- Separate Dockerfiles for backend and database
+- Docker Compose orchestration for the full stack
+- External macvlan/ipvlan network integration with static IP addresses
+- Persistent storage through a named Docker volume
+- Healthcheck, restart policy, and service dependency handling
 
-This project demonstrates:
+The backend exposes:
+- `POST /records` to analyze image content and insert a record
+- `GET /records` to fetch stored records
+- `GET /health` to verify backend and database status
 
-- A backend API that analyzes images using Gemini and stores results.
-- A PostgreSQL database with persistent storage via named Docker volume.
-- A frontend served by Nginx, with proxying to backend API endpoints.
-- A LAN-mode deployment using an external Docker network with static IPs.
-- A localhost testing path for same-machine testing reliability.
+## 2. Architecture and Flow
 
-Repository reference: [Project Assignment 1](https://github.com/sainisourab/containerization-and-devops-labb/tree/main/Project%20Assignment%201)
+### 2.1 Logical Flow
 
-## System Architecture
+1. Client opens the frontend web UI running in a dedicated container.
+2. Frontend sends API calls to `/api/*`, proxied by Nginx to the backend container.
+3. Backend validates input and obtains image bytes.
+4. Backend calls Gemini model for image interpretation and reference comparison.
+5. Backend inserts structured analysis into PostgreSQL.
+6. Frontend renders API responses and recent records to the user.
 
-```mermaid
-flowchart TD
-    C[Client Browser / Postman] --> F[Frontend Nginx]
-    F -->|/api/* proxy| B[Backend FastAPI + Gemini]
-    B --> D[(PostgreSQL)]
-    D --> V[(Named Docker Volume)]
-```
-
-Deployment network model:
-
-- `frontend`, `backend`, and `database` join external `lan_net` using static IPs.
-- `frontend_local` stays on bridge network and publishes a host port (`8088` by default).
-- `backend` is dual-homed (`app_net` + `lan_net`) so LAN and local frontend paths both work.
-
-## Tech Stack
-
-- Frontend: HTML + JavaScript + Nginx
-- Backend: FastAPI + asyncpg + Gemini API
-- Database: PostgreSQL (custom Docker image)
-- Container Orchestration: Docker Compose
-- Networking: external `macvlan` or `ipvlan`
-
-## Project Structure
+### 2.2 Network Design Diagram
 
 ```text
-.
-├── backend/
-│   ├── app/
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── gemini_service.py
-│   │   ├── main.py
-│   │   └── schemas.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── database/
-│   ├── init/01-bootstrap.sql
-│   └── Dockerfile
-├── frontend/
-│   ├── Dockerfile
-│   ├── index.html
-│   └── nginx.conf
-├── docs/
-│   └── PROOF_STEPS.md
-├── docker-compose.yml
-├── .env.example
-├── NETWORK_COMMANDS.md
-└── REPORT.md
+   +-------------------------+
+   | Client (Browser)        |
+   +-----------+-------------+
+               |
+               | HTTP (LAN)
+               v
+   +-----------------------------+
+   | Frontend Container          |
+   | image-analyzer-frontend     |
+   | Static IP: FRONTEND_STATIC_IP|
+   +--------------+--------------+
+                  |
+                  | HTTP /api/*
+                  v
+   +-----------------------------+
+   | Backend Container           |
+   | image-analyzer-api          |
+   | Static IP: BACKEND_STATIC_IP|
+   +--------------+--------------+
+                  |
+                  | TCP 5432
+                  v
+   +-----------------------------+
+   | PostgreSQL Container        |
+   | image-analyzer-db           |
+   | Static IP: DB_STATIC_IP     |
+   +--------------+--------------+
+                  |
+                  v
+      Named Volume: image_analyzer_postgres_data
+
+External Docker Network: macvlan OR ipvlan
 ```
 
-## Prerequisites
+## 3. Container Build Optimization
 
-Before running the stack, ensure:
+### 3.1 Backend Image Optimization
 
-- Docker Desktop / Docker Engine is installed and running.
-- Docker Compose v2 is available (`docker compose version`).
-- A valid Gemini API key is available.
-- Your LAN subnet and gateway are known (for static IP planning).
+The backend Dockerfile uses a **multi-stage build**:
 
-## Configuration
+- **Builder stage**
+  - Creates virtual environment
+  - Installs Python dependencies once
+  - Uses `--no-cache-dir` to reduce layer bloat
+- **Runtime stage**
+  - Copies only virtual environment + app code
+  - Excludes pip cache and build artifacts
+  - Runs with a dedicated non-root user (`appuser`)
 
-1. Create environment file:
+This approach reduces image size and attack surface compared with single-stage builds.
+
+### 3.2 Minimal Base Images
+
+- Backend: `python:3.12-slim`
+- Database: `postgres:16-alpine`
+
+Both are smaller than full distro images and better suited for production.
+
+### 3.3 Layer and Context Hygiene
+
+`.dockerignore` is provided in both backend and database folders to avoid copying:
+- caches
+- logs
+- editor metadata
+- temporary artifacts
+
+This improves build speed and avoids unnecessary layers.
+
+## 4. Image Size Comparison
+
+### 4.1 Measurement Commands
+
+Run the following after build:
 
 ```bash
-cp .env.example .env
+docker compose build --no-cache
+docker images | grep -E "image-analyzer|REPOSITORY"
 ```
 
-2. Update these keys in `.env`:
+### 4.2 Comparison Table Template
 
-- `DOCKER_LAN_NETWORK` (name of external network to create)
-- `BACKEND_STATIC_IP`, `DB_STATIC_IP`, `FRONTEND_STATIC_IP` (must be in subnet and unused)
-- `FRONTEND_HOST_PORT` (default `8088`)
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
-- `GEMINI_API_KEY`, `GEMINI_MODEL`
+Use the measured output to populate:
 
-3. Make sure selected IPs do not conflict with DHCP or existing LAN devices.
+| Component | Unoptimized (single stage/full base) | Optimized (current) | Gain |
+|---|---:|---:|---:|
+| Backend | (measure) | (measure) | (calculate) |
+| Database | (measure) | (measure) | (calculate) |
 
-## Networking: macvlan vs ipvlan
+Expected trend:
+- backend optimized image should be significantly smaller than a naive single-stage image
+- database image remains compact with alpine base and limited customization
 
-### `macvlan` vs `ipvlan` (conceptual difference)
+## 5. Networking Design (Macvlan/Ipvlan)
 
-| Parameter | macvlan | ipvlan |
+### 5.1 Why External L2 Network
+
+The assignment requires LAN-reachable containers with static IP addresses.  
+An external `macvlan` or `ipvlan` network supports direct Layer-2 style addressing on the LAN subnet.
+
+### 5.2 Static IP Assignment
+
+Static IPs are assigned in `docker-compose.yml`:
+- backend: `${BACKEND_STATIC_IP}`
+- database: `${DB_STATIC_IP}`
+
+This ensures predictable addressing for API access and DB connectivity.
+
+### 5.3 Subnet and Gateway
+
+Subnet and gateway are configured during manual network creation:
+- `--subnet=...`
+- `--gateway=...`
+- `-o parent=...`
+
+### 5.4 Host Isolation in Macvlan
+
+In macvlan mode, host-to-container communication is often blocked by design.
+- Containers can usually talk to LAN peers.
+- Host may require a separate macvlan interface and routing rules to reach containers directly.
+
+This is a known behavior and must be documented for deployment planning.
+
+## 6. Macvlan vs Ipvlan Comparison
+
+| Criteria | Macvlan | Ipvlan |
 |---|---|---|
-| L2 identity | Each container gets its own MAC address | Containers reuse parent interface MAC (driver-level multiplexing) |
-| Broadcast domain behavior | Container appears like a separate physical LAN host | More interface-efficient with fewer exposed MAC identities |
-| Typical assignment demos | Very popular for "container as LAN host" demonstrations | Often chosen where MAC scaling or switch policies matter |
-| Host to container access | Common host-isolation caveat on same machine | Can be easier in some setups, but depends on mode/config |
+| Container identity on LAN | Unique MAC per container | Shares parent MAC behavior |
+| Switch/infra compatibility | Can stress MAC tables at scale | Better MAC scalability |
+| Host-container communication | Often isolated by default | Usually easier depending on mode |
+| Typical use | Direct L2 presence per container | Lower-overhead L2/L3 variants |
+| Assignment fit | Excellent for demonstrating LAN presence | Also valid and often more scalable |
 
-### Why `macvlan` is chosen in this project
+Conclusion:
+- For demonstration clarity, macvlan is intuitive.
+- For larger deployments, ipvlan may be operationally cleaner.
 
-`macvlan` is selected as the primary recommendation for assignment demonstration because:
+## 7. Persistence and Reliability Validation
 
-- It clearly shows each container as a first-class LAN endpoint with static IP identity.
-- It maps well to the assignment requirement of demonstrating custom networking and LAN reachability.
-- It is straightforward to explain and verify using `docker network inspect` and container IP checks.
+### 7.1 Named Volume Persistence
 
-`ipvlan` is still supported as an alternate mode and can be used where local environment constraints make it preferable.
+Database data lives in:
+- `image_analyzer_postgres_data` named volume
 
-### macvlan host isolation workaround
+Validation sequence:
+1. Insert record using `POST /records`
+2. Run `docker compose down`
+3. Run `docker compose up -d`
+4. Fetch with `GET /records`
+5. Record still exists
 
-In many environments, the Docker host cannot directly access containers on the same `macvlan` network. This is expected behavior in common `macvlan` setups.
+### 7.2 Healthchecks and Restart
 
-This project provides a practical workaround:
+- Database healthcheck: `pg_isready`
+- Backend healthcheck: internal HTTP call to `/health`
+- Frontend healthcheck: internal HTTP check on Nginx root path
+- Restart policy: `unless-stopped`
+- Startup ordering: `depends_on` with `condition: service_healthy`
 
-1. Keep LAN-facing services on `lan_net` (`macvlan`).
-2. Run `frontend_local` on bridge network.
-3. Expose `frontend_local` via host port (`http://localhost:8088` by default).
+These controls improve service reliability and startup correctness.
 
-This gives both:
+## 8. Screenshot Evidence Checklist
 
-- LAN demonstration path via static IP (`http://<FRONTEND_STATIC_IP>`)
-- Reliable same-host testing path via localhost
+Capture and include screenshots for:
 
-Optional advanced workaround (host-side `macvlan` shim):
+1. Network inspection output:
+   - `docker network inspect <network-name>`
+2. Container IP addresses:
+   - `docker inspect -f "{{.Name}} -> {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" image-analyzer-api image-analyzer-db`
+3. Volume persistence test:
+   - `POST /records` success
+   - `docker compose down && docker compose up -d`
+   - `GET /records` still returns inserted data
+4. Running containers:
+   - `docker compose ps`
 
-- Create a host `macvlan` interface attached to the same parent NIC.
-- Assign an IP in the same subnet.
-- Add routing rules to reach container IP range through that shim.
+## 9. Conclusion
 
-Note: exact commands differ by OS and host networking model. For this assignment repository, the recommended and portable workaround remains `frontend_local` on localhost.
+The delivered solution satisfies assignment constraints and demonstrates practical production concerns:
+- container image optimization
+- secure environment-based configuration
+- service orchestration
+- persistent storage
+- external LAN networking with static addressing
 
-## Quick Start
-
-### 1) Create external network (mandatory)
-
-Use one mode from `NETWORK_COMMANDS.md`:
-
-- Option A: `macvlan` (recommended)
-- Option B: `ipvlan` (alternative)
-
-### 2) Build and start all services
-
-```bash
-docker compose up --build -d
-```
-
-### 3) Verify status and health
-
-```bash
-docker compose ps
-docker compose logs backend --tail=50
-docker compose logs frontend frontend_local --tail=50
-docker compose logs database --tail=50
-```
-
-## Access Modes
-
-| Use Case | URL | Notes |
-|---|---|---|
-| LAN access (assignment proof) | `http://<FRONTEND_STATIC_IP>` | Uses external LAN network |
-| Same host/laptop access | `http://localhost:<FRONTEND_HOST_PORT>` | Uses `frontend_local` |
-| Backend health check | `http://<BACKEND_STATIC_IP>:8000/health` | Validates API + DB + Gemini config |
-
-Default host port is `8088` unless changed in `.env`.
-
-## API Reference
-
-### `GET /health`
-
-```bash
-curl http://<BACKEND_STATIC_IP>:8000/health
-```
-
-### `POST /records`
-
-Stores analyzed result into PostgreSQL.
-
-Request with image URL:
-
-```json
-{
-  "image_url": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05",
-  "reference_text": "A landscape image likely showing nature."
-}
-```
-
-Request with base64:
-
-```json
-{
-  "image_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "reference_text": "Check if this looks like a product photo."
-}
-```
-
-Example:
-
-```bash
-curl -X POST http://<BACKEND_STATIC_IP>:8000/records \
-  -H "Content-Type: application/json" \
-  -d "{\"image_url\":\"https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05\",\"reference_text\":\"Nature scene\"}"
-```
-
-### `GET /records?limit=<n>`
-
-```bash
-curl "http://<BACKEND_STATIC_IP>:8000/records?limit=10"
-```
-
-## Proof and Validation Checklist
-
-Use these commands for screenshots/evidence:
-
-```bash
-docker network inspect <network-name>
-docker inspect -f "{{.Name}} -> {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" image-analyzer-frontend image-analyzer-api image-analyzer-db
-docker compose ps
-```
-
-Persistence validation flow:
-
-1. Call `POST /records` to insert data.
-2. Stop stack: `docker compose down`
-3. Restart stack: `docker compose up -d`
-4. Call `GET /records`
-5. Confirm older records still exist (named volume persistence).
-
-Detailed checklist: `docs/PROOF_STEPS.md`
-
-## Troubleshooting
-
-- `413 Request Entity Too Large`
-  - Configure `client_max_body_size` in `frontend/nginx.conf`.
-- Cannot open static frontend IP from same host
-  - Typical `macvlan` host-isolation; use `http://localhost:<FRONTEND_HOST_PORT>`.
-- Static IP assignment fails
-  - Ensure IPs are within subnet and currently unused.
-- External network missing
-  - Create external network first (`macvlan` or `ipvlan`) before `docker compose up`.
-- Network overlap errors
-  - Select a non-overlapping subnet with your existing Docker/host networks.
-
-## Security Notes
-
-- Never commit real API keys into git.
-- Keep `.env` private; commit only `.env.example`.
-- Rotate `GEMINI_API_KEY` if accidentally exposed.
-- Use strong `POSTGRES_PASSWORD` values in non-demo environments.
