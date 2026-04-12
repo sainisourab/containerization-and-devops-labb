@@ -284,21 +284,21 @@ Successfully implemented a complete CI/CD pipeline where:
 ---
 
 ### Screenshot 2 — Create First Admin User
-![Create First Admin User](image-1.png)
+![Create First Admin User](image1.png)
 
 > Creating the admin user `Sourabh Saini` during Jenkins initial configuration.
 
 ---
 
 ### Screenshot 3 — LocalTunnel Warning Page
-![LocalTunnel Tunnel Warning](image-2.png)
+![LocalTunnel Tunnel Warning](image2.png)
 
 > The localtunnel gateway page for `https://green-donuts-nail.loca.lt` — requiring IP confirmation before accessing Jenkins publicly.
 
 ---
 
 ### Screenshot 4 — LocalTunnel Setup in Terminal
-![LocalTunnel Terminal Setup](image-3.png)
+![LocalTunnel Terminal Setup](image3.png)
 
 > Terminal showing `npm install -g localtunnel`, `docker ps` confirming Jenkins container is running, and `npx localtunnel --port 8080` generating the public tunnel URL.
 
