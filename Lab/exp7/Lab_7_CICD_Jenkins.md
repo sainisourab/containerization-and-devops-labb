@@ -286,7 +286,7 @@ Successfully implemented a complete CI/CD pipeline where:
 ### Screenshot 2 — Create First Admin User
 ![Create First Admin User](image-1.png)
 
-> Creating the admin user `MayankThakur` during Jenkins initial configuration.
+> Creating the admin user `Sourabh Saini` during Jenkins initial configuration.
 
 ---
 
