@@ -179,7 +179,7 @@ docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ### 6.4 Initial Setup
 
 - Install suggested plugins
-- Create admin user (`MayankThakur`)
+- Create admin user (`SourabhSaini`)
 
 ---
 
@@ -249,7 +249,7 @@ Jenkins runs inside Docker with the Docker socket mounted:
 
 This allows Jenkins to directly control the host's Docker daemon — building and pushing images without needing a separate agent node.
 
-A custom **Permanent Agent** node (`Mayank node macos`) was also configured in Jenkins under `Manage Jenkins → Nodes → New Node` to demonstrate multi-node agent setup.
+A custom **Permanent Agent** node (`Sourabh node `) was also configured in Jenkins under `Manage Jenkins → Nodes → New Node` to demonstrate multi-node agent setup.
 
 ---
 
@@ -305,36 +305,36 @@ Successfully implemented a complete CI/CD pipeline where:
 ---
 
 ### Screenshot 5 — LocalTunnel Connection Error (Firewall)
-![LocalTunnel Connection Error]![alt text](image-4.png)
+![LocalTunnel Connection Error]![alt text](image4.png)
 
 > Localtunnel connection refused error due to firewall settings — resolved by switching to `npx localtunnel` instead of the global `lt` command.
 
 ---
 
 ### Screenshot 6 — Jenkins Account Settings
-![Jenkins Account Settings]![alt text](image-5.png)
+![Jenkins Account Settings]![alt text](image5.png)
 
-> Jenkins user account page for `mayankthakur` showing profile, credentials, and email settings via the localtunnel public URL.
+> Jenkins user account page for `sourabhsaini` showing profile, credentials, and email settings via the localtunnel public URL.
 
 ---
 
 ### Screenshot 7 — Adding New Node (Agent)
-![Jenkins New Node Creation](image-9.png)
-> Creating a new Permanent Agent node named `Mayank node` in Jenkins under `Manage Jenkins → Nodes → New Node`.
+![Jenkins New Node Creation](image9.png)
+> Creating a new Permanent Agent node named `Sourabh node` in Jenkins under `Manage Jenkins → Nodes → New Node`.
 
 ---
 
 ### Screenshot 8 — Nodes Dashboard
-![alt text](image-6.png)
+![alt text](image6.png)
 
-> Jenkins Nodes page showing the `Built-In Node` (Linux aarch64) and the newly added `Mayank node macos` agent.
+> Jenkins Nodes page showing the `Built-In Node` (Linux aarch64) and the newly added `Sourabh node ` agent.
 
 ---
 
 ### Screenshot 9 — Agent Connection Command
 ![Jenkins Agent Command](Screenshot 2026-04-01 at 9.15.44 AM.png)
 
-> Jenkins displaying the JNLP agent connection commands (Unix/Windows) with a secret token to connect `Mayank node macos` as a remote agent.
+> Jenkins displaying the JNLP agent connection commands (Unix/Windows) with a secret token to connect `Sourabh node ` as a remote agent.
 
 ---
 
