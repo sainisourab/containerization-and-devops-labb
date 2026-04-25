@@ -160,7 +160,7 @@ docker build -t ubuntu-server .
 ```
 
 ---
-![alt text](screenshots/dockerfile.png)
+![alt text](image.png)
 ### Step 4: Launch 4 Server Containers
 
 ```bash
