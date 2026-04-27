@@ -284,7 +284,7 @@ For verbose output (useful for debugging):
         dest: /root/ansible_test.txt
         content: "Configured by Ansible on {{ inventory_hostname }}"
 ```
-![alt text](screenshots/image-4.png)
+![alt text](image4.png)
 Run the playbook:
 
 ```bash
