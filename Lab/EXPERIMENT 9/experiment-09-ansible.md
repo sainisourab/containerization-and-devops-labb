@@ -216,7 +216,7 @@ cat inventory.ini
 
 **Expected `inventory.ini` content:**
 
-![alt text](screenshots/image-2.png)
+![alt text](image-2.png)
 
 ### Step 6: Test Connectivity
 
@@ -252,7 +252,7 @@ ansible all -i inventory.ini -m ping
     "ping": "pong"
 }
 ```
-![alt text](screenshots/image-3.png)
+![alt text](image-3.png)
 For verbose output (useful for debugging):
 
 
