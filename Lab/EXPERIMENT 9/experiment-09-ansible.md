@@ -323,7 +323,7 @@ PLAY RECAP *********************************************************************
 ```
 
 ---
-![alt text](screenshots/imagecopy.png)
+![alt text](image11.png)
 
 ### Step 8: Create Advanced Playbook (`playbook1.yml`)
 
@@ -381,7 +381,7 @@ Using Ansible to read the created file across all servers:
 ```bash
 ansible all -i inventory.ini -m command -a "cat /root/ansible_test.txt"
 ```
-![alt text](screenshots/image.png)
+![alt text](image11.png)
 Using Docker exec directly:
 
 ```bash
