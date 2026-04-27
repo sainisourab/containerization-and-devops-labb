@@ -389,7 +389,7 @@ for i in {1..4}; do
     docker exec server${i} cat /root/ansible_test.txt
 done
 ```
-![alt text](screenshots/image-1.png)
+![alt text](lastimage.png)
 **Expected output on each server:**
 
 ```
