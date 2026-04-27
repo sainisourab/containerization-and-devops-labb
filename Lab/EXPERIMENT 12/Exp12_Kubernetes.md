@@ -259,7 +259,7 @@ sudo apt install -y kubeadm kubelet kubectl
 sudo apt-mark hold kubeadm kubelet kubectl
 ```
 
-![alt text](screenshots/image-2.png)
+![alt text](image9.png)
 
 **Step 2:** Initialize the control plane (master node only)
 
@@ -285,7 +285,7 @@ sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-![alt text](screenshots/image-3.png)
+![alt text](image10.png)
 
 Now you can run `kubectl get nodes` to see the master.
 
@@ -295,7 +295,7 @@ Now you can run `kubectl get nodes` to see the master.
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 ```
 
-![alt text](screenshots/image-4.png)
+![alt text](image11.png)
 
 Wait 1–2 minutes for Calico to start.
 
@@ -316,7 +316,7 @@ Run that exact command on each worker node.
 kubectl get nodes
 ```
 
-![alt text](screenshots/image-5.png)
+![alt text](image12.png)
 
 Expected output:
 ```
