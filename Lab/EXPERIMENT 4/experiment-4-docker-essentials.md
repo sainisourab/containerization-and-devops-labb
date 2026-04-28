@@ -3,10 +3,6 @@
 
 ## Name: Sourabh Saini
 
-
-
-
-
 Roll no: R2142230968
 Sap-ID: 500124739
 School of Computer Science,
@@ -446,15 +442,11 @@ docker system prune -a
 ```
 # **Experiment 4: Docker Essentials**
 
-## Name: Mayank Thakur
+## Name: Sourabh Saini
 
 
-
-
-
-
-Roll no: R2142230924
-Sap-ID: 500123412
+Roll no: R2142230968
+Sap-ID: 500124739
 School of Computer Science,
 
 University of Petroleum and Energy Studies, Dehradun
