@@ -1,12 +1,6 @@
 
 
 ## Name: Sourabh Saini
-
-
-
-
-
-
 Roll no: R2142230968
 Sap-ID: 500124739
 School of Computer Science,
@@ -31,12 +25,6 @@ Docker is an open-source containerization platform that allows applications to
 be packaged along with their dependencies into lightweight, portable containers.
 Containers run on a shared operating system kernel, making them faster and
 more resource-efficient than traditional virtual machines.
-
-
-
-
-
-
 
 
 A Docker Image is a read-only template used to create containers.
