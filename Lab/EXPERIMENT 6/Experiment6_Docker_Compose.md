@@ -93,7 +93,7 @@ docker run -d \
   nginx:alpine
 ```
 
-![alt text](image.png)
+![alt text](image3.png)
 
 **Verify container is running:**
 ```bash
@@ -104,7 +104,7 @@ docker ps
 
 **📸 Screenshot – Browser output (Docker Run):**
 
-![Browser output - Docker Run localhost:8081]![alt text](image-2.png)
+![Browser output - Docker Run localhost:8081]![alt text](image-5.png)
 
 
 
@@ -137,12 +137,12 @@ services:
 ```bash
 docker compose up -d
 ```
-![alt text](image-3.png)
+![alt text](image-6.png)
 **Verify:**
 ```bash
 docker compose ps
 ```
-![alt text](image-5.png)
+![alt text](image-7.png)
 ---
 
 **Stop containers:**
@@ -162,7 +162,7 @@ docker compose down
 ```bash
 docker network create wp-net
 ```
-![alt text](image-6.png)
+![alt text](image-8.png)
 
 **Step 2: Run MySQL container:**
 ```bash
@@ -173,7 +173,7 @@ docker run -d \
   -e MYSQL_DATABASE=wordpress \
   mysql:5.7
 ```
-![alt text](image-7.png)
+![alt text](image-9.png)
 **Step 3: Run WordPress container:**
 ```bash
 docker run -d \
@@ -184,18 +184,18 @@ docker run -d \
   -e WORDPRESS_DB_PASSWORD=secret \
   wordpress:latest
 ```
-![alt text](image-8.png)
+![alt text](image-10.png)
 **Verify both containers running:**
 ```bash
 docker ps
 ```
-![alt text](image-4.png)
+![alt text](image-11.png)
 **Access in browser:** `http://localhost:8082`
 
 **📸 Screenshot – WordPress installation page (via Docker Run):**
-![alt text](<Screenshot 2026-03-19 at 11.02.08 PM.png>)
+![alt text](image-12.png)
 
-![alt text](image-9.png)
+![alt text](image-13.png)
 
 > *The WordPress installation page loads at `http://localhost:8082`, confirming both the MySQL and WordPress containers are running and communicating via the `wp-net` Docker network.*
 
@@ -227,8 +227,8 @@ services:
 
 volumes:
   mysql_data:
-```
-![alt text](image-10.png)
+``` 
+![alt text](image-14.png)
 **Start application:**
 ```bash
 docker compose up -d
@@ -242,7 +242,7 @@ docker ps
 
 **📸 Screenshot – WordPress page via Docker Compose:**
 
-![alt text](<Screenshot 2026-03-19 at 11.02.08 PM.png>)
+![alt text](image-15.png)
 
 **Stop and remove everything:**
 ```bash
@@ -271,7 +271,7 @@ docker run -d \
   --restart unless-stopped \
   node:18-alpine
 ```
-![alt text](image-13.png)
+![alt text](image-16.png)
 **Equivalent `docker-compose.yml`:**
 ```yaml
 version: '3.8'
@@ -286,7 +286,7 @@ services:
       DEBUG: "false"
     restart: unless-stopped
 ```
-![alt text](image-12.png)
+![alt text](image-17.png)
 **Run:**
 ```bash
 docker compose up -d
@@ -296,7 +296,7 @@ docker compose up -d
 ```bash
 docker compose ps
 ```
-![alt text](image-15.png)
+![alt text](image-18.png)
 ---
 
 #### Problem 2: Volume + Network Configuration
@@ -318,11 +318,11 @@ docker run -d \
   --network app-net \
   -p 8000:8000 \
   -e DB_HOST=postgres-db \
-  -e DB_USER=admin \
+  -e DB_USER=admin \        
   -e DB_PASS=secret \
   python:3.11-slim
 ```
-![alt text](image-16.png)
+![alt text](image-19.png)
 **Equivalent `docker-compose.yml`:**
 ```yaml
 version: '3.8'
@@ -359,7 +359,7 @@ networks:
   app-net:
 ```
 
-![alt text](image-14.png)
+![alt text](image-20.png)
 **Run:**
 ```bash
 docker compose up -d

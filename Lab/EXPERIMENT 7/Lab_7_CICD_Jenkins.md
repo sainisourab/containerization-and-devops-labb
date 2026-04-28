@@ -332,7 +332,7 @@ Successfully implemented a complete CI/CD pipeline where:
 ---
 
 ### Screenshot 9 — Agent Connection Command
-![Jenkins Agent Command](Screenshot 2026-04-01 at 9.15.44 AM.png)
+![Jenkins Agent Command](Screenshott.png)
 
 > Jenkins displaying the JNLP agent connection commands (Unix/Windows) with a secret token to connect `Sourabh node ` as a remote agent.
 

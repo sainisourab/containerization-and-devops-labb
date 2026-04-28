@@ -2,12 +2,6 @@
 
 ---
 ## Name:Sourabh Saini
-
-
-
-
-
-
 Roll no: R2142230968
 Sap-ID: 500124739
 School of Computer Science,

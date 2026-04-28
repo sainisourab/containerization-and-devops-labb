@@ -42,7 +42,7 @@ Procedure / Steps to Perform the Experiment
 ## Step 1: Pull Docker Image
 The Nginx image is pulled from Docker Hub using the following command:
 docker pull nginx
-![](Dockerpull.png)
+![](Dockerpull.png) 
 
 
 This command downloads the latest official Nginx image to the local system.
